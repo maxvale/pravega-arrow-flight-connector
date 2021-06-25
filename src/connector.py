@@ -5,6 +5,11 @@ import yaml
 
 CONFIG_FILE = 'config.yaml'
 
+
+class Connector:
+    pass
+
+
 if __name__ == '__main__':
     with open(CONFIG_FILE) as file:
         config_data = yaml.load(file)

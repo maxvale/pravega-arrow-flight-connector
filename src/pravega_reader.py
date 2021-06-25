@@ -4,7 +4,7 @@ import pravega_client as pc
 import pyarrow as pa
 
 
-JSON_FILE = '..\\data\\test.json'
+JSON_FILE = '../data/test1.json'
 
 
 class PravegaReader:
@@ -37,19 +37,13 @@ class PravegaReader:
         del self.readers[name]
 
     def get_buffer(self):
-        return self.buffer.getvalue()
+        value = self.buffer.getvalue()
+        self._flush_buffer()
+        return value
 
-    def flush_buffer(self):
-        self.buffer.flush()
+    def get_count(self):
+        return self.event_count
+
+    def _flush_buffer(self):
+        self.buffer = pa.BufferOutputStream()
         self.event_count = 0
-
-    def test_write_data(self):
-        with open(JSON_FILE) as json_file:
-            json_obj = json.load(json_file)
-        print(json_obj)
-        data_string = json.dumps(json_obj)
-        print(data_string)
-        data_string = bytes(data_string, 'utf-8')
-        data = data_string + data_string
-        self.buffer.write(data)
-        self.event_count = 2
