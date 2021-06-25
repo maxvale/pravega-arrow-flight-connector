@@ -1,5 +1,3 @@
-import json
-
 import pravega_client as pc
 import pyarrow as pa
 
@@ -27,14 +25,17 @@ class PravegaReader:
     async def read_segment_async(self, name):
         reader = self.readers[name]
         segment_slice = await reader.get_segment_slice_async()
-        print(segment_slice)
         for item in segment_slice:
-            print(item.data())
+            print('Reading data: ' + str(item.data()))
             self.buffer.write(item.data())
             self.event_count += 1
         reader.release_segment(segment_slice)
         reader.reader_offline()
         del self.readers[name]
+        self.buffer.close()
+
+    def is_checked(self):
+        return self.buffer.closed
 
     def get_buffer(self):
         value = self.buffer.getvalue()

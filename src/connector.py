@@ -1,35 +1,61 @@
-import pravega_client as pc
-import pravega_reader
 import asyncio
-import yaml
 
-CONFIG_FILE = 'config.yaml'
+import pravega_reader as pr
+import data_processor as dp
+import pyarrow as pa
+import pravega_client as pc
+
+JSON_FILE = '..\\data\\test'
+
+JSON_SCHEMA = pa.schema([('timestamp', pa.string()),
+                         ('id', pa.string()),
+                         ('data', pa.int32())])
+
+HOST = '127.0.0.1:9090'
 
 
 class Connector:
-    pass
+    def __init__(self):
+        self.stream_dict = dict()
+        self.reader_group_dict = dict()
+
+    def add_stream(self, name, schema):
+        if name not in self.stream_dict.keys():
+            self.stream_dict[name] = dp.ArrowStream(schema)
+
+    def add_reader(self, name, scope, stream, host):
+        if name not in self.reader_group_dict.keys():
+            self.reader_group_dict[name] = pr.PravegaReader(scope,
+                                                            stream,
+                                                            name,
+                                                            host)
+
+    def get_reader(self, name):
+        return self.reader_group_dict[name]
+
+    def get_stream(self, name):
+        return self.stream_dict[name]
+
+
+async def pravega_reading(buf):
+    await asyncio.sleep(2)
+    buf.write(b'Hello')
+    await asyncio.sleep(4)
+    buf.write(b'World!')
+
+
+async def main():
+    buf = pa.BufferOutputStream()
+    try:
+        await asyncio.wait_for(pravega_reading(buf),
+                               timeout=5.0)
+    except asyncio.TimeoutError:
+        buf.close()
+
+    if buf.closed:
+        reader = buf.getvalue()
+        print(reader.to_pybytes())
 
 
 if __name__ == '__main__':
-    with open(CONFIG_FILE) as file:
-        config_data = yaml.load(file)
-    host = config_data['pravega']
-
-    manager = pc.StreamManager("192.168.56.1:9090", False, False)
-    manager.create_scope("scope")
-    manager.create_stream("scope", "stream", 3)
-
-    writer_one = manager.create_writer("scope", "stream")
-    writer_two = manager.create_writer("scope", "stream")
-
-    writer_one.write_event("event11")
-    writer_two.write_event("event21")
-    writer_two.write_event("event22", "key2")
-    writer_one.write_event("event12", "key1")
-
-    reader_group = pravega_reader.Reader("scope", "stream", "rg1", host)
-    reader_group.add_reader("rd1")
-
-    buffer = asyncio.run(reader_group.read_event_async("rd1"))
-    for item in buffer:
-        print(item)    
+    asyncio.run(main())

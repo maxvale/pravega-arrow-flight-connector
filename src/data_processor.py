@@ -1,5 +1,4 @@
 import asyncio
-
 import pyarrow as pa
 import pravega_client as pc
 import json
