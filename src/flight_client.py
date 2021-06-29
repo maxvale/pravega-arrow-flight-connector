@@ -32,8 +32,6 @@ def main():
     except Exception as e:
         print("Smth go wrong!")
 
-    options = fl.FlightCallOptions()
-
 
 if __name__ == '__main__':
     main()

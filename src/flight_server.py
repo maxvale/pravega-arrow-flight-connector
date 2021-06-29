@@ -26,12 +26,14 @@ class FlightServer(fl.FlightServerBase):
         self.flights = dict()
         self.host = host
 
-    def add_flight_stream(self, descriptor, stream):
+    def update_flight_table(self, descriptor, reader):
         key = self._descriptor_to_key(descriptor)
-        if key in self.flights.keys():
-            raise Exception("This stream is already exist")
-        self.flights[key] = stream
-        self.flights[key].test_update_data()
+        table = reader.read_all()
+        if key not in self.flights.keys():
+            self.flights[key] = table
+            return
+        tables = [self.flights[key], table]
+        self.flights[key] = pa.concat_tables(tables)
 
     def list_flights(self, context, criteria):
         for key, stream in self.flights.items():
@@ -39,17 +41,17 @@ class FlightServer(fl.FlightServerBase):
                 descriptor = fl.FlightDescriptor.for_command(key[1])
             else:
                 descriptor = fl.FlightDescriptor.for_path(key[2])
-            table = stream.get_data().read_all()
+            table = self.flights[key]
             yield self._make_flight_info(key, descriptor, table)
 
     def get_flight_info(self, context, descriptor):
         key = self._descriptor_to_key(descriptor)
-        table = self.flights[key].get_data().read_all()
+        table = self.flights[key]
         return self._make_flight_info(key, descriptor, table)
 
     def do_get(self, context, ticket):
         key = ast.literal_eval(ticket.ticket.decode())
-        return fl.RecordBatchStream(self.flights[key].get_data().read_all())
+        return fl.RecordBatchStream(self.flights[key])
 
     def do_put(self, context, descriptor, reader, writer):
         pass
@@ -94,17 +96,11 @@ def main():
     print(desc_path)
     stream = flight_stream.FlightStream('scope', 'stream', 'rg1',
                                         JSON_SCHEMA, HOST)
-    server.add_flight_stream(desc_path, stream)
+    stream.test_update_data()
+    reader = stream.get_data()
+    server.update_flight_table(desc_path, reader)
     print("Starts on ", location)
-
-    ticket = fl.Ticket('ticket')
-    print(ticket)
-    t = ticket.ticket.decode()
-    print(t)
     server.serve()
-
-
-
 
 
 if __name__ == '__main__':
