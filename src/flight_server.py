@@ -26,6 +26,9 @@ class FlightServer(fl.FlightServerBase):
         self.flights = dict()
         self.host = host
 
+    # TODO: NEED TO RELEASE A LOGIC FOR TIMEOUT UPDATE STREAM DATA AND
+    # TODO: AND AFTER CALL UPDATE FUNC
+
     def update_flight_table(self, descriptor, reader):
         key = self._descriptor_to_key(descriptor)
         table = reader.read_all()
@@ -57,14 +60,24 @@ class FlightServer(fl.FlightServerBase):
         pass
 
     def list_actions(self, context):
-        pass
+        return [
+            ("shutdown", "Shutdown"),
+            ("healthcheck", "Check availability")
+        ]
+
+    # TODO: THINK ABOUT LOGIC AND EXTRA ACTIONS
 
     def do_action(self, context, action):
         if action.type == "shutdown":
             yield fl.Result(pa.py_buffer(b'Shutdown!'))
             threading.Thread(target=self._shutdown).start()
-        elif action.type == "info":
-            yield fl.Result(pa.py_buffer(b'SERVER WORK!'))
+        elif action.type == "healthcheck":
+            yield fl.Result(pa.py_buffer(b'I am good! What about you?'))
+        elif action.type == "update_data":
+            pass
+        # TODO: IMPL BIG FUNC FOR UPDATING ALL LIST FLIGHTS
+        else:
+            raise KeyError("Unknown action {!r}".format(action.type))
 
     @classmethod
     def _descriptor_to_key(self, descriptor):
@@ -90,6 +103,7 @@ class FlightServer(fl.FlightServerBase):
 
 
 def main():
+    # TODO: NOT SO TRASH SERVE LOGIC
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     server = FlightServer('localhost', location=location)
     desc_path = fl.FlightDescriptor.for_path('stream/scope')

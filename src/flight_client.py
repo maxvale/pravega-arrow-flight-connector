@@ -6,6 +6,8 @@ def main():
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     client = fl.FlightClient(location)
 
+# TODO: NOT SO TRASH IMPL
+
     while True:
         try:
             action = fl.Action("info", b"")
