@@ -11,6 +11,7 @@ class FlightClient(cmd.Cmd):
     def __init__(self, location):
         super().__init__()
         self.location = location
+        self.prompt = '> '
         self.client = fl.FlightClient(location)
 
         while True:
@@ -24,28 +25,55 @@ class FlightClient(cmd.Cmd):
         print(answer)
         print("Server is up and ready!")
 
-    def do_list(self):
+    def do_list(self, arg):
+        print('--- Flights list ---')
         for flight in self.client.list_flights():
             descriptor = flight.descriptor
-            print('PATH: ', descriptor.path)
-            print('TOTAL RECORDS: ', flight.total_records)
+            print('Path: ', descriptor.path)
+            print('Total records: ', flight.total_records)
             print('Total bytes: ', flight.total_bytes)
             print('Number of endpoints: ', len(flight.endpoints))
-            print('Schema: ', flight.schema)
-            print('---')
+            print('Schema: \n', flight.schema)
+        print('---------')
 
+        print('--- Flights actions ---')
         for action in self.client.list_actions():
             print('Type: ', action.type)
             print('Description: ', action.description)
+        print('---------')
 
-    def do_healthcheck(self):
-        buffer = self._server_action('healthcheck')
-        print(buffer)
+    def do_get_flight(self, arg):
+        descriptor = fl.FlightDescriptor.for_path(arg)
+        try:
+            info = self.client.get_flight_info(descriptor)
+            for endpoint in info.endpoints:
+                print('Ticket: ', endpoint.ticket)
+                reader = self.client.do_get(endpoint.ticket)
+                dataframe = reader.read_pandas()
+                print('Dataframe: \n', dataframe)
+                print('---------')
+        except fl.FlightError:
+            print('Unknown stream')
 
-    def do_shutdown(self):
-        buffer = self._server_action('shutdown')
+    def do_update(self, arg):
+        try:
+            self._server_action('update')
+        except ConnectionError as e:
+            print("Cannot reach server on", self.location)
 
-    def do_quit(self):
+    def do_healthcheck(self, arg):
+        try:
+            self._server_action('healthcheck')
+        except ConnectionError as e:
+            print("Cannot reach server on", self.location)
+
+    def do_shutdown(self, arg):
+        try:
+            self._server_action('shutdown')
+        except ConnectionError as e:
+            print("Cannot reach server on", self.location)
+
+    def do_quit(self, arg):
         sys.exit(0)
 
     def _server_action(self, action_type):
@@ -54,32 +82,15 @@ class FlightClient(cmd.Cmd):
             action = fl.Action(action_type, buffer)
             print('Running ', action_type)
             for result in self.client.do_action(action):
-                print('Result: ', result.body.to_pybytes())
-            return buffer
+                print('Result: ', result.body.to_pybytes().decode('utf-8'))
         except pa.lib.ArrowIOError as e:
             print("Error with action: ", e)
 
 
 def main():
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
-    client = fl.FlightClient(location)
-
-    des = fl.FlightDescriptor.for_path('scope/stream')
-    info = client.get_flight_info(des)
-    for endpoint in info.endpoints:
-        print('Ticket : ', endpoint.ticket)
-        for location in endpoint.locations:
-            print(location)
-            get_client = fl.FlightClient(location)
-            reader = get_client.do_get(endpoint.ticket)
-            df = reader.read_pandas()
-            print(df)
-
-    action = fl.Action("shutdown", b"")
-    try:
-        list(client.do_action(action))
-    except Exception as e:
-        print("Smth go wrong!")
+    client = FlightClient(location)
+    client.cmdloop()
 
 
 if __name__ == '__main__':

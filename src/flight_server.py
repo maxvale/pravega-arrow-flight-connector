@@ -117,7 +117,7 @@ class FlightServer(fl.FlightServerBase):
         self.shutdown()
 
 
-def main():
+def write_test_data():
     manager = pc.StreamManager(HOST, False, False)
     manager.create_scope('scope')
     manager.create_stream('scope', 'stream', 1)
@@ -133,7 +133,10 @@ def main():
         print(str_)
         writer.write_event_bytes(str_)
 
-    # TODO: NOT SO TRASH SERVE LOGIC
+
+def main():
+    write_test_data()
+
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     server = FlightServer('localhost', location=location)
     stream = flight_stream.FlightStream('scope', 'stream', 'rg1',
