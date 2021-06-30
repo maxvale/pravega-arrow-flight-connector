@@ -25,11 +25,12 @@ class FlightServer(fl.FlightServerBase):
                  verify_cli=False, root_cert=None, auth_hand=None):
         super(FlightServer, self).__init__(
             location, auth_hand, tls_cert, verify_cli, root_cert)
+        self.stream_list = list()
         self.flights = dict()
         self.host = host
 
-    # TODO: NEED TO RELEASE A LOGIC FOR TIMEOUT UPDATE STREAM DATA AND
-    # TODO: AND AFTER CALL UPDATE FUNC -> OUT FROM CLASS
+    def add_new_data_stream(self, stream):
+        self.stream_list.append(stream)
 
     def update_flight_table(self, descriptor, reader):
         key = self._descriptor_to_key(descriptor)
@@ -39,6 +40,16 @@ class FlightServer(fl.FlightServerBase):
             return
         tables = [self.flights[key], table]
         self.flights[key] = pa.concat_tables(tables)
+
+    def update_all_tables(self):
+        for stream in self.stream_list:
+            stream.update_data('rd1')
+            reader = stream.get_data()
+            descriptor = stream.get_descriptor()
+            self.update_flight_table(descriptor, reader)
+
+    def get_stream_list(self):
+        return self.stream_list
 
     def list_flights(self, context, criteria):
         for key, stream in self.flights.items():
@@ -65,7 +76,8 @@ class FlightServer(fl.FlightServerBase):
     def list_actions(self, context):
         return [
             ("shutdown", "Shutdown"),
-            ("healthcheck", "Check availability")
+            ("healthcheck", "Check availability"),
+            ("update", "Update data of all flights")
         ]
 
     # TODO: THINK ABOUT LOGIC AND EXTRA ACTIONS
@@ -76,9 +88,9 @@ class FlightServer(fl.FlightServerBase):
             threading.Thread(target=self._shutdown).start()
         elif action.type == "healthcheck":
             yield fl.Result(pa.py_buffer(b'I am good! What about you?'))
-        elif action.type == "update_data":
-            pass
-        # TODO: IMPL BIG FUNC FOR UPDATING ALL LIST FLIGHTS
+        elif action.type == "update":
+            yield fl.Result(pa.py_buffer(b'Every stream was updated'))
+            self.update_all_tables()
         else:
             raise KeyError("Unknown action {!r}".format(action.type))
 
@@ -124,13 +136,10 @@ def main():
     # TODO: NOT SO TRASH SERVE LOGIC
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     server = FlightServer('localhost', location=location)
-    desc_path = fl.FlightDescriptor.for_path('stream/scope')
-    print(desc_path)
     stream = flight_stream.FlightStream('scope', 'stream', 'rg1',
                                         JSON_SCHEMA, HOST)
-    stream.update_data('rd1')
-    reader = stream.get_data()
-    server.update_flight_table(desc_path, reader)
+    server.add_new_data_stream(stream)
+    server.update_all_tables()
     print("Starts on ", location)
     server.serve()
 

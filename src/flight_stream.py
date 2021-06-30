@@ -1,21 +1,10 @@
 import asyncio
-import json
 
 import pyarrow as pa
 import pyarrow.flight as fl
-import pravega_client as pc
 
 import data_processor
 import pravega_reader
-
-
-JSON_FILE = '..\\data\\test'
-
-JSON_SCHEMA = pa.schema([('timestamp', pa.string()),
-                         ('id', pa.string()),
-                         ('data', pa.int32())])
-
-HOST = '127.0.0.1:9090'
 
 
 class FlightStream:

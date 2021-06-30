@@ -1,9 +1,6 @@
-import asyncio
-import pyarrow as pa
-import pravega_client as pc
 import json
 
-import pravega_reader as pr
+import pyarrow as pa
 
 
 class ArrowStream:
