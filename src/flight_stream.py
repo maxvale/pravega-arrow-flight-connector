@@ -21,7 +21,7 @@ class FlightStream:
 
     def __init__(self, scope, stream, name, schema, host):
         self.stream = data_processor.ArrowStream(schema)
-        #self.reader = pravega_reader.PravegaReader(scope, stream, name, host)
+        self.reader = pravega_reader.PravegaReader(scope, stream, name, host)
 
     def get_data(self) -> pa.RecordBatchStreamReader:
         return self.stream.read_stream()
@@ -56,23 +56,7 @@ class FlightStream:
 
 
 def main():
-    manager = pc.StreamManager(HOST, False, False)
-    manager.create_scope('scope')
-    manager.create_stream('scope', 'stream', 1)
-    writer = manager.create_writer('scope', 'stream')
-
-    for i in range(3):
-        with open(str(JSON_FILE + str(i + 1) + '.json')) as json_file:
-            json_obj = json.load(json_file)
-        str_ = json.dumps(json_obj)
-
-        print(str_)
-        str_ = bytes(str_, 'utf-8')
-        print(str_)
-        writer.write_event_bytes(str_)
-
-    flight = FlightStream('scope', 'stream', 'rg1', JSON_SCHEMA, HOST)
-    flight.update_data('rd1')
+    pass
 
 
 if __name__ == '__main__':

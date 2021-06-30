@@ -1,9 +1,11 @@
 import ast
 import threading
 import time
+import json
 
 import pyarrow as pa
 import pyarrow.flight as fl
+import pravega_client as pc
 
 import flight_stream
 
@@ -27,7 +29,7 @@ class FlightServer(fl.FlightServerBase):
         self.host = host
 
     # TODO: NEED TO RELEASE A LOGIC FOR TIMEOUT UPDATE STREAM DATA AND
-    # TODO: AND AFTER CALL UPDATE FUNC
+    # TODO: AND AFTER CALL UPDATE FUNC -> OUT FROM CLASS
 
     def update_flight_table(self, descriptor, reader):
         key = self._descriptor_to_key(descriptor)
@@ -57,7 +59,8 @@ class FlightServer(fl.FlightServerBase):
         return fl.RecordBatchStream(self.flights[key])
 
     def do_put(self, context, descriptor, reader, writer):
-        pass
+        key = self._descriptor_to_key(descriptor)
+        self.flights[key] = reader.read_all()
 
     def list_actions(self, context):
         return [
@@ -103,6 +106,21 @@ class FlightServer(fl.FlightServerBase):
 
 
 def main():
+    manager = pc.StreamManager(HOST, False, False)
+    manager.create_scope('scope')
+    manager.create_stream('scope', 'stream', 1)
+    writer = manager.create_writer('scope', 'stream')
+
+    for i in range(3):
+        with open(str(JSON_FILE + str(i + 1) + '.json')) as json_file:
+            json_obj = json.load(json_file)
+        str_ = json.dumps(json_obj)
+
+        print(str_)
+        str_ = bytes(str_, 'utf-8')
+        print(str_)
+        writer.write_event_bytes(str_)
+
     # TODO: NOT SO TRASH SERVE LOGIC
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     server = FlightServer('localhost', location=location)
@@ -110,7 +128,7 @@ def main():
     print(desc_path)
     stream = flight_stream.FlightStream('scope', 'stream', 'rg1',
                                         JSON_SCHEMA, HOST)
-    stream.test_update_data()
+    stream.update_data('rd1')
     reader = stream.get_data()
     server.update_flight_table(desc_path, reader)
     print("Starts on ", location)
