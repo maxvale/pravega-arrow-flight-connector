@@ -10,14 +10,14 @@ def main():
 
     while True:
         try:
-            action = fl.Action("info", b"")
+            action = fl.Action("healthcheck", b"")
             list(client.do_action(action))
             break
         except pa.ArrowIOError as e:
             if "Deadline" in str(e):
                 print("Server upping")
 
-    des = fl.FlightDescriptor.for_path('stream/scope')
+    des = fl.FlightDescriptor.for_path('scope/stream')
     info = client.get_flight_info(des)
     for endpoint in info.endpoints:
         print('Ticket : ', endpoint.ticket)

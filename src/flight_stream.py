@@ -2,6 +2,7 @@ import asyncio
 import json
 
 import pyarrow as pa
+import pyarrow.flight as fl
 import pravega_client as pc
 
 import data_processor
@@ -22,6 +23,7 @@ class FlightStream:
     def __init__(self, scope, stream, name, schema, host):
         self.stream = data_processor.ArrowStream(schema)
         self.reader = pravega_reader.PravegaReader(scope, stream, name, host)
+        self.descriptor = fl.FlightDescriptor.for_path(str(scope + '/' + stream))
 
     def get_data(self) -> pa.RecordBatchStreamReader:
         return self.stream.read_stream()
@@ -42,22 +44,6 @@ class FlightStream:
         buffer = self.reader.get_buffer()
         self.stream.write_segment(buffer, event_count)
 
-    def test_update_data(self):
-        stream = pa.BufferOutputStream()
-        for i in range(3):
-            with open(str(JSON_FILE + str(i + 1) + '.json')) as json_file:
-                json_obj = json.load(json_file)
-            str_ = json.dumps(json_obj)
-            str_ = bytes(str_, 'utf-8')
-            print(str_)
-            stream.write(str_)
-        buf = stream.getvalue()
-        self.stream.write_segment(buf, 3)
+    def get_descriptor(self):
+        return self.descriptor
 
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()
