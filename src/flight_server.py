@@ -10,7 +10,7 @@ import pravega_client as pc
 import flight_stream
 
 
-JSON_FILE = '..\\data\\test'
+JSON_FILE = '../data/test'
 
 JSON_SCHEMA = pa.schema([('timestamp', pa.string()),
                          ('id', pa.string()),
@@ -135,7 +135,7 @@ def write_test_data():
 
 
 def main():
-    write_test_data()
+#    write_test_data()
 
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     server = FlightServer('localhost', location=location)

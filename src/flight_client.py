@@ -1,6 +1,8 @@
 import argparse
 import cmd
 import sys
+import pandas
+import matplotlib.pyplot as plt
 
 import pyarrow as pa
 import pyarrow.flight as fl
@@ -52,6 +54,8 @@ class FlightClient(cmd.Cmd):
                 dataframe = reader.read_pandas()
                 print('Dataframe: \n', dataframe)
                 print('---------')
+                dataframe.plot(x='id', y='data')
+                plt.savefig('demo.png')
         except fl.FlightError:
             print('Unknown stream')
 

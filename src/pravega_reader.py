@@ -26,9 +26,11 @@ class PravegaReader:
         reader = self.readers[name]
         segment_slice = await reader.get_segment_slice_async()
         for item in segment_slice:
+            length = len(item.data())
             print('Reading event' + str(self.event_count) + ': '
-                  + str(item.data()))
-            self.buffer.write(item.data())
+                  + str(item.data()) + ' len: ' + str(length))
+            length = length.to_bytes(1, byteorder='big')
+            self.buffer.write(length + item.data())
             self.event_count += 1
         reader.release_segment(segment_slice)
         reader.reader_offline()

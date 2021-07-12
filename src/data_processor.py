@@ -15,13 +15,15 @@ class ArrowStream:
         if event_count == 0:
             return
         reader = pa.BufferReader(segment)
-        step = reader.size() // event_count
         start = reader.tell()
         buffer = dict()
         while start < reader.size():
-            data_fragment = reader.read(step)
+            size = reader.read(1)
+            size = int.from_bytes(size, byteorder='big')
+            data_fragment = reader.read(size)
             start = reader.tell()
-            print('Position: ' + str(start))
+            print('Position: ' + str(start - size))
+            print('Size: ' + str(size))
             print('Data fragment: ' + str(data_fragment))
             self._process_fragment(data_fragment, buffer)
         batch = self._create_batch(buffer)
