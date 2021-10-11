@@ -52,3 +52,11 @@ python ./pravega-arrow-flight-connector/src/flight_server.py
 ```
 python ./pravega-arrow-flight-connector/src/flight_client.py
 ```
+
+## Useful links
+- [Pravega docs](https://pravega.io/docs/nightly/pravega-concepts/)
+- [Arrow introduce article](https://arrow.apache.org/blog/2019/10/13/introducing-arrow-flight/)
+- [Tools powered by apache arrow](https://arrow.apache.org/powered_by/)
+- [PyArrow lib docs](https://arrow.apache.org/docs/python/api/memory.html)
+- [Simple Flight client example](https://github.com/apache/arrow/blob/master/python/examples/flight/client.py)
+
