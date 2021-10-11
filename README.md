@@ -46,11 +46,11 @@ Install pravega using *[quick start guide](https://github.com/pravega/pravega/bl
 ```
 2. Start server that connects to pravega and create arrow stream
 ```
-python ./pravega-arrow-flight-connector/src/flight_server.py
+python3.9 ./pravega-arrow-flight-connector/src/flight_server.py
 ```
 3. Start client
 ```
-python ./pravega-arrow-flight-connector/src/flight_client.py
+python3.9 ./pravega-arrow-flight-connector/src/flight_client.py
 ```
 
 ## Useful links
