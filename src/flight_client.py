@@ -3,6 +3,7 @@ import cmd
 import sys
 import pandas
 import matplotlib.pyplot as plt
+import json
 
 import pyarrow as pa
 import pyarrow.flight as fl
@@ -49,15 +50,22 @@ class FlightClient(cmd.Cmd):
         try:
             info = self.client.get_flight_info(descriptor)
             for endpoint in info.endpoints:
-                print('Ticket: ', endpoint.ticket)
                 reader = self.client.do_get(endpoint.ticket)
                 dataframe = reader.read_pandas()
+                print('Ticket: ', endpoint.ticket)
                 print('Dataframe: \n', dataframe)
                 print('---------')
                 dataframe.plot(x='id', y='data')
                 plt.savefig('demo.png')
         except fl.FlightError:
             print('Unknown stream')
+
+
+    def do_write(self, arg):
+        try:
+            self._server_action('write')
+        except ConnectionError as e:
+            print("Cannot reach server on", self.location)
 
     def do_update(self, arg):
         try:

@@ -2,6 +2,7 @@ import ast
 import threading
 import time
 import json
+import yaml
 
 import pyarrow as pa
 import pyarrow.flight as fl
@@ -73,11 +74,30 @@ class FlightServer(fl.FlightServerBase):
         key = self._descriptor_to_key(descriptor)
         self.flights[key] = reader.read_all()
 
+    def write_all_tables(self):
+        for stream in self.stream_list:
+            reader = stream.get_data()
+            self.write(reader)
+
+    def write(self, reader):
+        dataframe = reader.read_pandas()
+        out = dataframe.to_json(orient='records')
+        json_obj = json.loads(out)
+        with open('config.yaml') as yaml_file:
+            config = yaml.load(yaml_file)
+            manager = pc.StreamManager(config['pravega'], False, False)
+            writer = manager.create_writer('scope', 'stream')
+            for p in json_obj:
+                str_ = json.dumps(p)
+                str_ = bytes(str_, 'utf-8')
+                writer.write_event_bytes(str_)
+
     def list_actions(self, context):
         return [
             ("shutdown", "Shutdown"),
             ("healthcheck", "Check availability"),
-            ("update", "Update data of all flights")
+            ("update", "Update data of all flights"),
+	    ("write", "Write data to pravega")
         ]
 
     # TODO: THINK ABOUT LOGIC AND EXTRA ACTIONS
@@ -91,6 +111,9 @@ class FlightServer(fl.FlightServerBase):
         elif action.type == "update":
             yield fl.Result(pa.py_buffer(b'Every stream was updated'))
             self.update_all_tables()
+        elif action.type == "write":
+            yield fl.Result(pa.py_buffer(b'Data was written'))
+            self.write_all_tables()
         else:
             raise KeyError("Unknown action {!r}".format(action.type))
 
@@ -117,25 +140,25 @@ class FlightServer(fl.FlightServerBase):
         self.shutdown()
 
 
-def write_test_data():
-    manager = pc.StreamManager(HOST, False, False)
-    manager.create_scope('scope')
-    manager.create_stream('scope', 'stream', 1)
-    writer = manager.create_writer('scope', 'stream')
+#def write_test_data():
+ #   manager = pc.StreamManager(HOST, False, False)
+  #  manager.create_scope('scope')
+   # manager.create_stream('scope', 'stream', 1)
+    #writer = manager.create_writer('scope', 'stream')
 
-    for i in range(3):
-        with open(str(JSON_FILE + str(i + 1) + '.json')) as json_file:
-            json_obj = json.load(json_file)
-        str_ = json.dumps(json_obj)
+ #   for i in range(3):
+ #       with open(str(JSON_FILE + str(i + 1) + '.json')) as json_file:
+  #          json_obj = json.load(json_file)
+   #     str_ = json.dumps(json_obj)
 
-        print(str_)
-        str_ = bytes(str_, 'utf-8')
-        print(str_)
-        writer.write_event_bytes(str_)
+    #    print(str_)
+     #   str_ = bytes(str_, 'utf-8')
+      #  print(str_)
+       # writer.write_event_bytes(str_)
 
 
 def main():
-#    write_test_data()
+    #write_test_data()
 
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     server = FlightServer('localhost', location=location)
