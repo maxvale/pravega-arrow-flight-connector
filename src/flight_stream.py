@@ -39,6 +39,6 @@ class FlightStream:
     def read_write(self, json_obj):
         self.IO.read_write(json_obj)
 
-    def write(self):
-        self.IO.write_event()
+    def write(self, path):
+        self.IO.write_event(path)
 

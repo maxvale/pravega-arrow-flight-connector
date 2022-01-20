@@ -72,13 +72,15 @@ class FlightServer(fl.FlightServerBase):
         key = ast.literal_eval(ticket.ticket.decode())
         return fl.RecordBatchStream(self.flights[key])
 
-    def do_exchange(self, context, descriptor, r, w):
-        print("do excange")
-        with open(JSON_FILE, 'r') as rfile:
-            json_obj = json.load(rfile)
-        print(json_obj)
-        self.stream_list[0].read_write(json_obj)
-
+  ## def do_exchange(self, context, descriptor, r, w):
+    #    print("do excange")
+     #   with open(JSON_FILE, 'r') as rfile:
+      #      json_obj = json.load(rfile)
+      #  print(json_obj)
+      #  self.stream_list[0].read_write(json_obj)
+    
+    def write(self):
+        self.stream_list[0].write(JSON_FILE)
 
 
     def list_actions(self, context):
@@ -100,7 +102,7 @@ class FlightServer(fl.FlightServerBase):
         elif action.type == "update":
             yield fl.Result(pa.py_buffer(b'Every stream was updated'))
             self.update_all_tables()
-        elif action.type == "write":
+        elif action.type == "put":
             yield fl.Result(pa.py_buffer(b'Data was written'))
             self.write()
         else:

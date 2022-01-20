@@ -65,13 +65,10 @@ class PravegaIO:
                 self.writer.write_event_bytes(str_)
 
 
-    def write_event(self):
-        with open(JSON_FILE) as json_file:
+    def write_event(self, path):
+        with open(path, 'r') as json_file:
             json_obj = json.load(json_file)
-        json_obj['timestamp'] = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-        json_obj['id'] = random.randint(10, 90)
-        json_obj['data'] = random.randint(10, 90)
-        str_ = json.dumps(json_obj)
-        str_ = bytes(str_, 'utf-8')
-        print(str_)
-        self.writer.write_event_bytes(str_)
+        for p in json_obj:
+            str_ = json.dumps(p)
+            str_ = bytes(str_, 'utf-8')
+            self.writer.write_event_bytes(str_)

@@ -71,16 +71,15 @@ class FlightClient(cmd.Cmd):
                 out = dataframe.to_json(orient='records')
                 json_obj = json.loads(out)
                 for p in json_obj:
-                    
-                with open(JSON_FILE, "w") as write_file:
-                    json.dump(json.loads(out), write_file)
-                self.client.do_exchange(descriptor)
+                    with open(JSON_FILE, "w") as write_file:
+                        json.dump(json.loads(out), write_file)
+                self._server_action('put')
         except fl.FlightError:
             print('Unknown stream')
 
     def do_write(self, arg):
         try:
-            self._server_action('write')
+            self._server_action('put')
         except ConnectionError as e:
             print("Cannot reach server on", self.location)
 
