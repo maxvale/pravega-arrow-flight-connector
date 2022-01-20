@@ -11,6 +11,7 @@ CONFIG_FILE = 'config.yaml'
 
 JSON_FILE = '../data/test1.json'
 
+
 def write_event(writer, idx):
     with open(JSON_FILE) as json_file:
         json_obj = json.load(json_file)

@@ -8,6 +8,7 @@ import json
 import pyarrow as pa
 import pyarrow.flight as fl
 
+JSON_FILE = '../data/temp.json'
 
 class FlightClient(cmd.Cmd):
 
@@ -60,6 +61,22 @@ class FlightClient(cmd.Cmd):
         except fl.FlightError:
             print('Unknown stream')
 
+    def do_read_write(self, arg):
+        descriptor = fl.FlightDescriptor.for_path(arg)
+        try:
+            info = self.client.get_flight_info(descriptor)
+            for endpoint in info.endpoints:
+                reader = self.client.do_get(endpoint.ticket)
+                dataframe = reader.read_pandas()
+                out = dataframe.to_json(orient='records')
+                json_obj = json.loads(out)
+                for p in json_obj:
+                    
+                with open(JSON_FILE, "w") as write_file:
+                    json.dump(json.loads(out), write_file)
+                self.client.do_exchange(descriptor)
+        except fl.FlightError:
+            print('Unknown stream')
 
     def do_write(self, arg):
         try:
