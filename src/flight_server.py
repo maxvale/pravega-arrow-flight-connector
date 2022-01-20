@@ -2,15 +2,16 @@ import ast
 import threading
 import time
 import json
+import yaml
 
 import pyarrow as pa
 import pyarrow.flight as fl
+import pravegaIO
 import pravega_client as pc
 
 import flight_stream
 
-
-JSON_FILE = '../data/test'
+JSON_FILE = '../data/temp.json'
 
 JSON_SCHEMA = pa.schema([('timestamp', pa.string()),
                          ('id', pa.string()),
@@ -20,7 +21,7 @@ HOST = '127.0.0.1:9090'
 
 
 class FlightServer(fl.FlightServerBase):
-    
+
     def __init__(self, host, location=None, tls_cert=None,
                  verify_cli=False, root_cert=None, auth_hand=None):
         super(FlightServer, self).__init__(
@@ -61,23 +62,33 @@ class FlightServer(fl.FlightServerBase):
             yield self._make_flight_info(key, descriptor, table)
 
     def get_flight_info(self, context, descriptor):
+        print("get_flight")
         key = self._descriptor_to_key(descriptor)
         table = self.flights[key]
         return self._make_flight_info(key, descriptor, table)
 
     def do_get(self, context, ticket):
+        print("do_get")
         key = ast.literal_eval(ticket.ticket.decode())
         return fl.RecordBatchStream(self.flights[key])
 
-    def do_put(self, context, descriptor, reader, writer):
-        key = self._descriptor_to_key(descriptor)
-        self.flights[key] = reader.read_all()
+  ## def do_exchange(self, context, descriptor, r, w):
+    #    print("do excange")
+     #   with open(JSON_FILE, 'r') as rfile:
+      #      json_obj = json.load(rfile)
+      #  print(json_obj)
+      #  self.stream_list[0].read_write(json_obj)
+    
+    def write(self):
+        self.stream_list[0].write(JSON_FILE)
+
 
     def list_actions(self, context):
         return [
             ("shutdown", "Shutdown"),
             ("healthcheck", "Check availability"),
-            ("update", "Update data of all flights")
+            ("update", "Update data of all flights"),
+            ("write", "Write data to pravega")
         ]
 
     # TODO: THINK ABOUT LOGIC AND EXTRA ACTIONS
@@ -91,14 +102,17 @@ class FlightServer(fl.FlightServerBase):
         elif action.type == "update":
             yield fl.Result(pa.py_buffer(b'Every stream was updated'))
             self.update_all_tables()
+        elif action.type == "put":
+            yield fl.Result(pa.py_buffer(b'Data was written'))
+            self.write()
         else:
             raise KeyError("Unknown action {!r}".format(action.type))
 
     @classmethod
     def _descriptor_to_key(self, descriptor):
-        return(descriptor.descriptor_type.value,
-               descriptor.command,
-               *tuple(descriptor.path or tuple()))
+        return (descriptor.descriptor_type.value,
+                descriptor.command,
+                *tuple(descriptor.path or tuple()))
 
     def _make_flight_info(self, key, descriptor, table):
         location = fl.Location.for_grpc_tcp(self.host, self.port)
@@ -118,24 +132,23 @@ class FlightServer(fl.FlightServerBase):
 
 
 def write_test_data():
-    manager = pc.StreamManager(HOST, False, False)
-    manager.create_scope('scope')
-    manager.create_stream('scope', 'stream', 1)
-    writer = manager.create_writer('scope', 'stream')
+   manager = pc.StreamManager(HOST, False, False)
+   manager.create_scope('scope')
+   manager.create_stream('scope', 'stream', 1)
+   writer = manager.create_writer('scope', 'stream')
 
-    for i in range(3):
-        with open(str(JSON_FILE + str(i + 1) + '.json')) as json_file:
-            json_obj = json.load(json_file)
-        str_ = json.dumps(json_obj)
+   for i in range(3):
+       with open(str('../data/test' + str(i + 1) + '.json')) as json_file:
+           json_obj = json.load(json_file)
+           str_ = json.dumps(json_obj)
 
-        print(str_)
-        str_ = bytes(str_, 'utf-8')
-        print(str_)
-        writer.write_event_bytes(str_)
+       str_ = bytes(str_, 'utf-8')
+       print(str_)
+       writer.write_event_bytes(str_)
 
 
 def main():
-#    write_test_data()
+    write_test_data()
 
     location = "{}://{}:{}".format('grpc+tcp', 'localhost', '8080')
     server = FlightServer('localhost', location=location)

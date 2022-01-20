@@ -3,10 +3,12 @@ import cmd
 import sys
 import pandas
 import matplotlib.pyplot as plt
+import json
 
 import pyarrow as pa
 import pyarrow.flight as fl
 
+JSON_FILE = '../data/temp.json'
 
 class FlightClient(cmd.Cmd):
 
@@ -49,15 +51,37 @@ class FlightClient(cmd.Cmd):
         try:
             info = self.client.get_flight_info(descriptor)
             for endpoint in info.endpoints:
-                print('Ticket: ', endpoint.ticket)
                 reader = self.client.do_get(endpoint.ticket)
                 dataframe = reader.read_pandas()
+                print('Ticket: ', endpoint.ticket)
                 print('Dataframe: \n', dataframe)
                 print('---------')
                 dataframe.plot(x='id', y='data')
                 plt.savefig('demo.png')
         except fl.FlightError:
             print('Unknown stream')
+
+    def do_read_write(self, arg):
+        descriptor = fl.FlightDescriptor.for_path(arg)
+        try:
+            info = self.client.get_flight_info(descriptor)
+            for endpoint in info.endpoints:
+                reader = self.client.do_get(endpoint.ticket)
+                dataframe = reader.read_pandas()
+                out = dataframe.to_json(orient='records')
+                json_obj = json.loads(out)
+                for p in json_obj:
+                    with open(JSON_FILE, "w") as write_file:
+                        json.dump(json.loads(out), write_file)
+                self._server_action('put')
+        except fl.FlightError:
+            print('Unknown stream')
+
+    def do_write(self, arg):
+        try:
+            self._server_action('put')
+        except ConnectionError as e:
+            print("Cannot reach server on", self.location)
 
     def do_update(self, arg):
         try:
