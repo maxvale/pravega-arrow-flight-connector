@@ -37,7 +37,7 @@ def main():
     while True:
         write_event(writer, idx)
         idx += 1
-        time.sleep(5)
+        time.sleep(1)
 
 
 if __name__ == '__main__':

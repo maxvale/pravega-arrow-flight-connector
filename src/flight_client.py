@@ -1,4 +1,5 @@
 import argparse
+import time
 import cmd
 import sys
 import pandas
@@ -45,6 +46,7 @@ class FlightClient(cmd.Cmd):
         print('---------')
 
     def do_get_flight(self, arg):
+        start = time.time()
         descriptor = fl.FlightDescriptor.for_path(arg)
         try:
             info = self.client.get_flight_info(descriptor)
@@ -52,6 +54,7 @@ class FlightClient(cmd.Cmd):
                 print('Ticket: ', endpoint.ticket)
                 reader = self.client.do_get(endpoint.ticket)
                 dataframe = reader.read_pandas()
+                print('Action time: ', time.time() - start, ' seconds')
                 print('Dataframe: \n', dataframe)
                 print('---------')
                 dataframe.plot(x='id', y='data')
@@ -60,8 +63,10 @@ class FlightClient(cmd.Cmd):
             print('Unknown stream')
 
     def do_update(self, arg):
+        start = time.time()
         try:
             self._server_action('update')
+            print('Action time: ', time.time() - start, ' seconds')
         except ConnectionError as e:
             print("Cannot reach server on", self.location)
 
